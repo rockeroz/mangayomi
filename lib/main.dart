@@ -60,6 +60,7 @@ import 'package:mangayomi/modules/more/settings/general/providers/memory_probe_p
 import 'package:mangayomi/modules/widgets/memory_overlay.dart';
 import 'package:mangayomi/modules/widgets/app_ui_scale.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/app_ui_scale_state_provider.dart';
+import 'package:mangayomi/services/mihon_sync/service.dart';
 
 late Isar isar;
 DiscordRPC? discordRpc;
@@ -154,6 +155,7 @@ void main(List<String> args) async {
             : ProviderScope(child: MyApp(), retry: (retryCount, error) => null),
       );
       if (startupError == null) unawaited(_postLaunchInit(storage));
+      if (startupError == null) unawaited(MihonSyncService.instance.start());
     },
     (Object error, StackTrace stack) {
       AppLogger.log(

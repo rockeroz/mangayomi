@@ -1,0 +1,62 @@
+name: Mihon Sync build
+
+on:
+  push:
+    branches: [mihon-sync]
+  workflow_dispatch:
+
+concurrency:
+  group: mihon-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Mihon Sync tests
+        run: flutter test test/services/mihon_sync_test.dart
+
+  build-windows:
+    name: Build (Windows release)
+    needs: check
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install 'flutter_rust_bridge_codegen'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mangayomi-MihonSync-windows
+          path: build/windows/x64/runner/Release/

@@ -6,6 +6,7 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/proto/mihon_extension_store.pb.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/utils/log/logger.dart';
+import 'package:mangayomi/services/mihon_sync/storage.dart';
 
 class ExtensionStoreFetchResult {
   final String name;
@@ -421,6 +422,7 @@ class ExtensionStoreService {
               ..iconUrl = '$repoBaseUrl/icon/${e['pkg']}.png'
               ..notes = null;
             src.id = 'mihon-${source['id']}'.hashCode;
+            MihonSourceIds.instance.remember(source['id']);
             sources.add(src);
           }
           continue;
@@ -577,6 +579,7 @@ class ExtensionStoreService {
           ..notes = null;
 
         source.id = 'mihon-${src.id}'.hashCode;
+        MihonSourceIds.instance.remember(src.id);
         sources.add(source);
       }
     }
@@ -665,6 +668,7 @@ class ExtensionStoreService {
             ..notes = null;
 
           source.id = 'mihon-$srcId'.hashCode;
+          MihonSourceIds.instance.remember(srcId);
           sources.add(source);
         }
       }

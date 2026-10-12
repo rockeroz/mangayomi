@@ -79,6 +79,11 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => context.push('/sync'),
             ),
             ListTileWidget(
+              title: 'Mihon Sync (WebDAV)',
+              icon: Icons.sync_alt_rounded,
+              onTap: () => context.push('/mihonSync'),
+            ),
+            ListTileWidget(
               title: l10n.browse,
               icon: Icons.explore_rounded,
               onTap: () => context.push('/browseS'),

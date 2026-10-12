@@ -50,6 +50,7 @@ import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:mangayomi/modules/manga/reader/mixins/reader_auto_scroll.dart';
+import 'package:mangayomi/services/mihon_sync/service.dart';
 
 typedef DoubleClickAnimationListener = void Function();
 
@@ -188,6 +189,7 @@ class _MangaChapterPageGalleryState
 
   @override
   void dispose() {
+    MihonSyncService.instance.readerStopped();
     WidgetsBinding.instance.removeObserver(this);
     _readingStopwatch.stop();
     _readerController.setHistoryUpdate(
@@ -356,6 +358,7 @@ class _MangaChapterPageGalleryState
   @override
   void initState() {
     super.initState();
+    MihonSyncService.instance.readerStarted();
     _readingStopwatch.start();
 
     final saved = _savedPageIndex;
