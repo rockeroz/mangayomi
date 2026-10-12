@@ -22,7 +22,7 @@ Mangayomi conserva sin cambios lo que solo Mihon usa: tiendas y extensiones inst
 
 La sincronización se ejecuta al abrir la app, al cerrar el lector y cada 15 minutos mientras Mangayomi está abierto (configurable). Mientras el lector está abierto se envía tu progreso, pero los cambios recibidos esperan a que lo cierres.
 
-La primera vez Mangayomi descarga la biblioteca completa. Después solo descarga los cambios, y si nada cambió el servidor responde "sin cambios" (304).
+La primera vez Mangayomi descarga la biblioteca completa. Si un manga ya está en el servidor, se toma el estado del servidor (progreso, categorías y marcadores) en lugar del de Mangayomi, para que una biblioteca vieja en el PC no pise lo que leíste en el celular. Los mangas que solo tiene Mangayomi se suben. Después solo descarga los cambios, y si nada cambió el servidor responde "sin cambios" (304).
 
 ## Cómo reconoce los mangas
 
@@ -55,6 +55,15 @@ El workflow `.github/workflows/mihon-sync.yml` analiza el código, ejecuta las p
 - respuestas 304, partes de cambios y compactación tras 32 cambios;
 - lector abierto;
 - lectura de un índice publicado por Mihon;
-- rechazo de servidores que ignoran escrituras condicionales.
+- rechazo de servidores que ignoran escrituras condicionales;
+- primera vinculación: el estado del servidor gana en los mangas que ya existen allí.
 
-No se ha probado con la base de datos real de Mangayomi en un dispositivo, ni con el servidor del usuario junto a Mihon Sync en un teléfono.
+`test/services/mihon_sync_library_test.dart` usa una base Isar real con los modelos de Mangayomi y comprueba:
+
+- conversión de IDs de fuente, páginas (1 → 0) y categorías;
+- capítulo terminado que conserva la página guardada por Mihon;
+- aplicación de mangas nuevos, progreso, categorías e historial, y fuentes no disponibles;
+- que lo aplicado se vuelve a leer igual (no se sube de nuevo);
+- que una edición local hecha durante la descarga no se pierde.
+
+No se ha probado en un PC con Windows real ni con el servidor del usuario junto a Mihon Sync en un teléfono.
