@@ -26,10 +26,26 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log
 
       - name: Mihon Sync tests
-        run: flutter test test/services/mihon_sync_test.dart
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test test/services/mihon_sync_test.dart test/services/mihon_sync_library_test.dart 2>&1 | tee test.log
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        run: |
+          for f in analyze.log test.log; do
+            [ -f "$f" ] || continue
+            body=$(grep -v '^\s*$' "$f" | grep -iE 'error|fail|expected|actual|exception|\.dart:[0-9]' | head -n 80 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=$f::${body}"
+          done
 
   build-windows:
     name: Build (Windows release)
@@ -53,7 +69,18 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows
-        run: flutter build windows --release
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build windows --release 2>&1 | tee build.log
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        run: |
+          [ -f build.log ] || exit 0
+          body=$(grep -iE 'error|fail' build.log | head -n 60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::error title=build.log::${body}"
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4

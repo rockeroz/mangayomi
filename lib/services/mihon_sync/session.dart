@@ -123,6 +123,10 @@ class MihonSyncSession {
   final SyncOptions options;
   final void Function(SyncStage stage) phase;
 
+  /// On the first pass of a newly linked library, entries that already exist on the server
+  /// take the server's state instead of competing with possibly older local data.
+  final bool preferRemoteOnFirstSync;
+
   MihonSyncSession({
     required this.repository,
     required this.remote,
@@ -131,6 +135,7 @@ class MihonSyncSession {
     required this.readerOpen,
     int Function()? now,
     this.options = SyncOptions.mangayomi,
+    this.preferRemoteOnFirstSync = true,
     void Function(SyncStage stage)? phase,
   }) : now = now ?? (() => DateTime.now().millisecondsSinceEpoch),
        phase = phase ?? ((_) {});
@@ -146,12 +151,40 @@ class MihonSyncSession {
       () async => SyncMerger.merge(comparison, journal.incoming ?? const SyncDocument()),
     );
     final observed = await syncStage(SyncStage.localRead, () => repository.snapshot(known));
+    var captured = observed;
+    final pristine =
+        journal.pending == null &&
+        journal.incoming == null &&
+        journal.baselineEtag == null &&
+        journal.baseline == const SyncDocument();
+    if (preferRemoteOnFirstSync && pristine) {
+      phase(SyncStage.download);
+      final first = await syncStage(SyncStage.download, () => remote.read());
+      final existing = await syncStage(SyncStage.decode, () async {
+        if (first.document != null) return first.document!;
+        final content = first.content;
+        return content == null ? const SyncDocument() : decodeSyncDocument(content);
+      });
+      final upgraded = SyncCategories.upgrade(existing);
+      final keys = {for (final manga in upgraded.mangas) manga.key};
+      final categories = {for (final category in upgraded.categoryDefinitions) category.id};
+      captured = observed.copyWith(
+        mangas: [
+          for (final manga in observed.mangas)
+            if (!keys.contains(manga.key)) manga,
+        ],
+        categoryDefinitions: [
+          for (final category in observed.categoryDefinitions)
+            if (!categories.contains(category.id)) category,
+        ],
+      );
+    }
     final candidate = await syncStage(
       SyncStage.prepare,
       () async => SyncMerger.merge(
         SyncMerger.capture(
           selected.captureBaseline(comparison, journal.options),
-          selected.captureSnapshot(observed, comparison),
+          selected.captureSnapshot(captured, comparison),
           device,
           now(),
           journal.incoming,

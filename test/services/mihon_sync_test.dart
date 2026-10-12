@@ -295,6 +295,19 @@ void main() {
       expect(pc.library.page(), 8);
     });
 
+    test('a newly linked library takes the server state for entries it already has', () async {
+      final server = _Server();
+      final phone = _Device(server, _Library([_manga(page: 12)]), 'phone');
+      await phone.sync();
+      // An older copy of the same entry, plus one that only this device has.
+      final pc = _Device(server, _Library([_manga(page: 5), _manga(url: '/only-pc', page: 2)]), 'pc');
+      expect(await pc.sync(), isTrue);
+      expect(pc.library.mangas.firstWhere((m) => m.key.url == '/book').chapters.single.position.value.page, 12);
+      await phone.sync();
+      expect(phone.library.mangas.map((m) => m.key.url).toSet(), {'/book', '/only-pc'});
+      expect(phone.library.mangas.firstWhere((m) => m.key.url == '/book').chapters.single.position.value.page, 12);
+    });
+
     test('a manifest published by Mihon is read', () async {
       final server = _Server();
       final document = SyncDocument.fromJson(jsonDecode(_mihonDocument));
